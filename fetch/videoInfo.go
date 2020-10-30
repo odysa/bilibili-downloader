@@ -10,8 +10,8 @@ import (
 
 const cidUrl = "https://api.bilibili.com/x/web-interface/view?bvid="
 
-func Fetch(url string) (model.Video, error) {
-	var result model.Video
+func Fetch(url string) (result model.Video, err error) {
+
 	BVRe := regexp.MustCompile(`.*/video/([^?]*).*`)
 	result.BV = string(BVRe.FindSubmatch([]byte(url))[1])
 
@@ -20,9 +20,9 @@ func Fetch(url string) (model.Video, error) {
 		return model.Video{}, err
 	}
 
-	result.Aid, result.Title, result.Desc, result.Up = getVideoInfo(data)
-	result.Parts = getVideoParts(data)
-	return result, nil
+	result.Aid, result.Title, result.Desc, result.Up = getVideoInfo(&data)
+	result.Parts = getVideoParts(&data)
+	return
 }
 
 func fetchUrl(bv string) (gjson.Result, error) {
@@ -32,10 +32,10 @@ func fetchUrl(bv string) (gjson.Result, error) {
 	}
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
-	return gjson.Get(string(data), "data"), nil
+	return gjson.GetBytes(data, "data"), err
 }
 
-func getVideoInfo(data gjson.Result) (aid int64, title string, desc string, up model.Up) {
+func getVideoInfo(data *gjson.Result) (aid int64, title string, desc string, up model.Up) {
 	aid = data.Get("aid").Int()
 	title = data.Get("title").String()
 	desc = data.Get("desc").String()
@@ -50,7 +50,7 @@ func getVideoInfo(data gjson.Result) (aid int64, title string, desc string, up m
 	return
 }
 
-func getVideoParts(data gjson.Result) (result []model.VideoPart) {
+func getVideoParts(data *gjson.Result) (result []model.VideoPart) {
 	pages := data.Get("pages").Array()
 	for _, item := range pages {
 		result = append(result, model.VideoPart{
